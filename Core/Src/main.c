@@ -26,8 +26,9 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <stdlib.h>
-#include "at_command.h"
 #include "microphone.h"
+#include "at_command.h"
+#include "cellular.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -730,12 +731,26 @@ void StartDefaultTask(void *argument)
   /* init code for USB_HOST */
   MX_USB_HOST_Init();
   /* USER CODE BEGIN 5 */
-    for(;;)
-    {
-        //HAL_GPIO_TogglePin(GPIOD, LD6_Pin);
-        osDelay(500);
-    }
 
+  /*
+  // 1. Open the UART driver (Enables interrupts)
+  AtCommand_Open(NULL);
+
+  // 2. Try to initialize the EG25-G
+  // -> BREAKPOINT HERE: Step into this function
+  atCommandErrorCodes_t res = Cellular_InitDevice();
+
+  if (res == E_AT_ERR_NONE) {
+	  // Modem responded with OK
+	  // Now try to setup the network
+	  res = Cellular_SetupNetwork();
+  }
+
+  for(;;)
+  {
+	  osDelay(10);
+  }
+  */
   /* USER CODE END 5 */
 }
 

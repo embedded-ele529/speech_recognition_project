@@ -7,7 +7,7 @@ extern "C" {
 
 #include <stdint.h>
 #include "main.h"
-#include "../../board.h"
+#include "board.h"
 
 // Get the I2S handle from main.c
 extern I2S_HandleTypeDef hi2s2;
