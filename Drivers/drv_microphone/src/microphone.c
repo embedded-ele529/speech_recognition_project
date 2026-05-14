@@ -2,8 +2,10 @@
 #include "../inc/microphone_hal.h"
 #include "../../../Middlewares/ST/STM32_Audio/Addons/PDM/Inc/pdm2pcm_glo.h"
 #include <string.h>
+#include "cmsis_os.h"
 
 static uint8_t isMicOpen = 0;
+static osSemaphoreId_t rx_semaphore = NULL;
 
 // Voice Recognition Calculations:
 // 1ms audio @ 16kHz = 16 PCM samples.
@@ -42,6 +44,11 @@ micErrorCodes_t Microphone_Open(void* vpParam)
     PDM_FilterConfig[0].decimation_factor = PDM_FILTER_DEC_FACTOR_64; // 64 PDM bits to produce 16 PCM samples
     PDM_Filter_setConfig(&PDM_FilterHandler[0], &PDM_FilterConfig[0]);
 
+    //  We create a binary semaphore that is empty (0) and can take a maximum value of 1
+	if (rx_semaphore == NULL) {
+		rx_semaphore = osSemaphoreNew(1, 0, NULL);
+	}
+
     // Start I2S DMA reception for PDM data
     if (HAL_I2S_Receive_DMA(&MIC_HW_I2S, pdm_rx_buffer, PDM_BUFFER_SIZE) != HAL_OK) {
         return E_MIC_ERR_HW_ERROR;
@@ -72,30 +79,32 @@ micErrorCodes_t Microphone_Ioctl(MIC_IOCTL_COMMANDS_T eCommand, void* vpParam)
     return E_MIC_ERR_NONE;
 }
 
-// Data read
 micErrorCodes_t Microphone_Read(int16_t* pBuffer, uint16_t size)
 {
     if (!isMicOpen) return E_MIC_ERR_HW_ERROR;
     if (pBuffer == NULL) return E_MIC_ERR_BUFFER_NULL;
 
-    uint8_t *pdm_ptr = NULL;
+    // Wait for either half or full buffer to be ready (10ms timeout since we expect 1ms of audio data)
+    if (osSemaphoreAcquire(rx_semaphore, 10) == osOK)
+    {
+        uint8_t *pdm_ptr = NULL;
 
-    // Check if new PDM data is ready (half or full buffer) and set pointer accordingly
-    if (data_half_ready) {
-        pdm_ptr = (uint8_t*)&pdm_rx_buffer[0];
-        data_half_ready = 0;
-    }
-    else if (data_full_ready) {
-        pdm_ptr = (uint8_t*)&pdm_rx_buffer[PDM_BUFFER_SIZE / 2];
-        data_full_ready = 0;
+        if (data_half_ready) {
+            pdm_ptr = (uint8_t*)&pdm_rx_buffer[0];
+            data_half_ready = 0;
+        }
+        else if (data_full_ready) {
+            pdm_ptr = (uint8_t*)&pdm_rx_buffer[PDM_BUFFER_SIZE / 2];
+            data_full_ready = 0;
+        }
+
+        if (pdm_ptr != NULL) {
+            PDM_Filter(pdm_ptr, (uint16_t*)pBuffer, &PDM_FilterHandler[0]);
+            return E_MIC_ERR_NONE;
+        }
     }
 
-    // If we have new PDM data, convert it to PCM and return
-    if (pdm_ptr != NULL) {
-        PDM_Filter(pdm_ptr, (uint16_t*)pBuffer, &PDM_FilterHandler[0]);
-        return E_MIC_ERR_NONE;
-    }
-
+    // If no interrupt occurs for 10ms (e.g. microphone freezes), return a timeout error
     return E_MIC_ERR_UNKNOWN;
 }
 
@@ -110,10 +119,16 @@ micErrorCodes_t Microphone_Close(void* vpParam)
 // DMA Interrupts
 void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
 {
-    if (hi2s->Instance == MIC_HW_I2S.Instance) data_half_ready = 1;
+    if (hi2s->Instance == MIC_HW_I2S.Instance) {
+        data_half_ready = 1;
+        osSemaphoreRelease(rx_semaphore);
+    }
 }
 
 void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s)
 {
-    if (hi2s->Instance == MIC_HW_I2S.Instance) data_full_ready = 1;
+    if (hi2s->Instance == MIC_HW_I2S.Instance) {
+        data_full_ready = 1;
+        osSemaphoreRelease(rx_semaphore);
+    }
 }

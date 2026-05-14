@@ -644,14 +644,15 @@ void StartMicTask(void *argument)
             uint32_t avg_amplitude = total_amplitude / 16;
 
             // Threshold check
-            if (avg_amplitude > 1600) {
-                HAL_GPIO_WritePin(GPIOD, LD4_Pin, GPIO_PIN_SET);   // Yeşil LED'i Yak
+            if (avg_amplitude > 1800) {
+                HAL_GPIO_WritePin(GPIOD, LD4_Pin, GPIO_PIN_SET);   // Green LED HIGH
             } else {
-                HAL_GPIO_WritePin(GPIOD, LD4_Pin, GPIO_PIN_RESET); // Söndür
+                HAL_GPIO_WritePin(GPIOD, LD4_Pin, GPIO_PIN_RESET); // Green LED LOW
             }
-        }
-
-        osDelay(1);
+        } else {
+			// If the semaphore times out (microphone freezes), to prevent locking up the processor:
+			osDelay(1);
+		}
     }
 }
 
