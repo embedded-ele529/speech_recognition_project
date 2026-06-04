@@ -2,6 +2,6 @@
 
 int main(int ac, char** av)
 {
-    // CppUTest test koşucusunu başlat
+    // Run CppUTest tests
     return CommandLineTestRunner::RunAllTests(ac, av);
 }

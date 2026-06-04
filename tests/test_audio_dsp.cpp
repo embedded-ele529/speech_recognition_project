@@ -1,35 +1,44 @@
 #include "CppUTest/TestHarness.h"
 
-// Gömülü sistem C kodlarımızı C++'a tanıtıyoruz
 extern "C" {
     #include "audio_dsp.h"
     #include <stdint.h>
 }
 
-// TEST GRUBU OLUŞTUR
+// Mock call counter (reset before each test)
+int mock_spectrogram_call_count = 0;
+
 TEST_GROUP(AudioDSP_TestGroup)
 {
     void setup() {
-        // Her testten ÖNCE çalışır (Örn: Değişkenleri sıfırlama)
+        AudioDSP_Init();
+        mock_spectrogram_call_count = 0; // Reset before each test
     }
-
-    void teardown() {
-        // Her testten SONRA çalışır (Örn: Hafızayı temizleme)
-    }
+    void teardown() {}
 };
 
-// İLK TESTİMİZ: Null buffer gönderildiğinde çökmemeli vs.
-TEST(AudioDSP_TestGroup, ProcessAudioShouldHandleEmptyBuffer)
+// Verifies output buffer is filled as expected.
+TEST(AudioDSP_TestGroup, ProcessAudioShouldFillTheOutputBuffer)
 {
-    // 1. ARRANGE (Hazırlık)
-    int16_t dummy_pcm_input[16000] = {0}; // Tamamen sessizlik (0)
+    int16_t dummy_pcm_input[16000] = {0};
+    float dummy_log_mel_output[122 * 40] = {0};
+    Process_Audio_To_MelSpectrogram(dummy_pcm_input, dummy_log_mel_output);
+    DOUBLES_EQUAL(1.23f, dummy_log_mel_output[0], 0.01f);
+    DOUBLES_EQUAL(1.23f, dummy_log_mel_output[4879], 0.01f);
+}
+
+// Verifies spectrogram generation produces exactly 122 columns.
+TEST(AudioDSP_TestGroup, ProcessAudioShouldGenerateExactly122Columns)
+{
+    // Arrange
+    int16_t dummy_pcm_input[16000] = {0};
     float dummy_log_mel_output[122 * 40] = {0};
 
-    // 2. ACT (Eylem)
-    // Henüz bunu çalıştırmıyoruz, çünkü altyapıyı kuruyoruz.
-    // Process_Audio_To_MelSpectrogram(dummy_pcm_input, dummy_log_mel_output);
+    // Act
+    Process_Audio_To_MelSpectrogram(dummy_pcm_input, dummy_log_mel_output);
 
-    // 3. ASSERT (Doğrulama)
-    // Şimdilik sistemin çalıştığını görmek için basit bir kontrol yapalım
-    CHECK_EQUAL(1, 1); 
+    // Assert
+    // The model expects a 122x40 input shape.
+    // The spectrogram column function must be called exactly 122 times.
+    CHECK_EQUAL(122, mock_spectrogram_call_count);
 }
