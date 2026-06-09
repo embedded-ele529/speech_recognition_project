@@ -1,4 +1,4 @@
-# Edge AI Speech Recognition & Cellular IoT System
+# Edge Speech Recognition and Wireless Telemetry on STM32
 
 This project is an **Edge AI and IoT** application built on an **STM32F407** microcontroller. Audio is listened to from the environment, an offline machine learning model is used to detect the keywords **"YES"** and **"NO"**, and the result is sent to a cloud broker through an LTE network.
 
