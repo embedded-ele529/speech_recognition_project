@@ -4,6 +4,8 @@ This project is an **Edge AI and IoT** application built on an **STM32F407** mic
 
 The firmware is not written as one large file. Instead, a layered structure is used so the project can be easier to read, test, and maintain. **FreeRTOS** is used to manage multiple tasks, and **CppUTest** is used for unit testing on a computer without flashing the board every time
 
+📄 **Project Poster:** A one-page summary of the system, prepared for the ELE529 Embedded Systems course at Istanbul Technical University, is available here: [ELE529_Edge_Speech_Recognition_Poster.pdf](docs/ELE529_Edge_Speech_Recognition_Poster.pdf)
+
 ## Architecture Overview
 
 The system is divided into different layers so each part can have a clear responsibility.
@@ -133,6 +135,7 @@ speech_recognition_project/
 │   ├── Custom/Cellular <-- Custom cellular logic built over the AT driver
 │   ├── ST/AI           <-- X-CUBE-AI generated files
 │   └── Third_Party/    <-- FreeRTOS kernel source code
+├── docs/               <-- Project poster (PDF)
 ├── tests/              <-- Host-based unit testing folder
 │   ├── Makefile        <-- Build rules for native compilation
 │   ├── mocks/          <-- Hardware and modem mocks
